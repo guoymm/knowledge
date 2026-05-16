@@ -69,3 +69,40 @@ ms-swift Megatron GRPO：`swift rollout --model <base>` 起的 rollout server �
 或调大 max_model_len。
 
 ---
+
+## 2026-05-11 — apply_chat_template 的 tools 渲染由 chat_template 决定
+
+**类型**: 知识
+
+`apply_chat_template(messages, tools=[...])` 把 tools 转 JSON schema 注入 Jinja
+渲染上下文，**渲染位置完全由 tokenizer 的 `chat_template` 模板字符串决定**，
+不是 transformers 硬编码。模板里有 `{% for tool in tools %}` 才渲染，没写就
+忽略。排查训练/推理格式不一致先 `print(tok.chat_template)` 对比两侧模板。
+（这正是 SFT 后推理乱码的深层排查点。）
+
+## 2026-05-11 — verl 计数单位是 prompt（query），不是 query×n
+
+**类型**: 知识
+
+verl 全栈以 prompt（query 条数）为基本单位，rollout 数 `n` 是独立维度。
+`train_prompt_mini_bsz=48` + `rollout.n=8` → 实际 384 条 trajectory；
+`concurrent_per_server=32` 是 32 个 query 在跑，in-flight sequence 是 32×n。
+算显存/生成量记得乘 `actor_rollout_ref.rollout.n`。
+
+## 2026-05-11 — verl step 单位：rollout step vs trainer step
+
+**类型**: 知识
+
+`rollout.total_rollout_steps` 按 **rollout step** 计（rollout 端产出多少 step
+才停，异步训练 rollout/train 解耦故用它做终止信号）；`trainer.save_freq` /
+`test_freq` 按 **trainer step（actor update step）** 计。两者单位不同，跑短
+实验调小 total_rollout_steps。
+
+## 2026-05-11 — verl SFT 数据准备
+
+**类型**: 知识
+
+verl SFT 默认读 parquet（一行一样本），推荐 messages 格式（覆盖多轮/tool
+call）：`{"messages":[...]}`，assistant 的 tool_calls 单独字段。loss mask 由
+chat_template 的 generation 标记 + dataset 配置决定，只在 assistant 段算 loss。
+比 RL 数据准备简单：一份 parquet + 一段 chat_template 渲染。

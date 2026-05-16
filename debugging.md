@@ -63,3 +63,21 @@ tool_client 多线程调用加锁后卡死。结论：之前不加锁跑得很�
 没有该类。排查 import 错误先确认 `module.__file__` 实际指向哪个副本。
 
 ---
+
+## 2026-05-12 — Ray ActorDiedError 真因在 actor stderr
+
+**类型**: 经验
+
+driver 端看到的 `ActorDiedError` 只是"actor 死了"的传播错误，被截断处不是
+根因。真因在那个 actor 自己的 worker log：从报错里取 `actor_id` / `pid` /
+节点 ip，去 Ray dashboard → Actors → 该 actor → stderr，或在对应节点
+`find /tmp/ray -name "worker-*<pid 后缀>.err"`。排 Ray 故障别只看 driver log。
+
+## 2026-05-11 — bytedray async actor strict check
+
+**类型**: 知识
+
+bytedray 2.10.0.74 在 `ray.remote(Worker)` 时检查到基类有 `async def` 方法
+就标记为 async actor，但若执行方法是 sync 就矛盾报错。verl 上游在原生 ray
+2.10.x 无此问题，是 bytedray 加的检查。排查：
+`grep -n "async def" verl/single_controller/base/worker.py`。

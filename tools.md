@@ -43,3 +43,12 @@ Edit 的 old_string 必须与文件逐字匹配（含缩进），且唯一；改
 `git diff --cached --stat` 自检改动范围，避免误提交。
 
 ---
+
+## 2026-05-08 — git submodule 拉取 & 内网 github mirror
+
+**类型**: 经验
+
+`.gitmodules` 只是声明，子模块代码要 `git submodule update --init --recursive`。
+环境出网不通时走字节内网 mirror（一次全局生效）：
+`git config --global url."http://go.bytedance.net/github_proxy/".insteadOf "https://github.com/"`
+（同理对 `git@github.com:`）。然后再 submodule update。

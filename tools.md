@@ -52,3 +52,23 @@ Edit 的 old_string 必须与文件逐字匹配（含缩进），且唯一；改
 环境出网不通时走字节内网 mirror（一次全局生效）：
 `git config --global url."http://go.bytedance.net/github_proxy/".insteadOf "https://github.com/"`
 （同理对 `git@github.com:`）。然后再 submodule update。
+
+## 2026-05-16 — GitHub deploy key 默认只读
+
+**类型**: 问题
+
+`ssh -T git@github.com` 成功但 `git push` 报
+`ERROR: The key you are authenticating with has been marked as read only.`。
+根因：repo Settings → Deploy keys 添加时**未勾 "Allow write access"**。该选项
+创建后**不可改**，只能删掉 key 重加并勾选。或改用账号级 SSH key（默认有写权限）。
+排查口诀：ssh -T 通 = 认证 OK；push 被拒看是只读 deploy key 还是账号无权限。
+
+## 2026-05-16 — 重生成 SSH key 不要覆盖原 key
+
+**类型**: 经验
+
+机器上原 `id_rsa` 可能属别的账号或被集群（ssh_master/ssh_worker）在用。
+重生成时：① 先 `cp id_rsa id_rsa.bak_<ts>` 备份；② 新 key 用**独立文件名**
+（如 `id_ed25519`）不覆盖；③ 在 `~/.ssh/config` 加 `Host github.com` +
+`IdentityFile <新key>` + `IdentitiesOnly yes` 只对 github 用新 key，不影响
+其他 host。切忌直接 `ssh-keygen -f id_rsa` 覆盖。

@@ -81,3 +81,21 @@ bytedray 2.10.0.74 在 `ray.remote(Worker)` 时检查到基类有 `async def` �
 就标记为 async actor，但若执行方法是 sync 就矛盾报错。verl 上游在原生 ray
 2.10.x 无此问题，是 bytedray 加的检查。排查：
 `grep -n "async def" verl/single_controller/base/worker.py`。
+
+## 2026-05-15 — IPv6 URL 必须方括号 + FastAPI 尾斜杠 301
+
+**类型**: 问题
+
+`http://fdbd:...::8001/health/` 一直 curl 失败两个独立坑：① IPv6 地址在 URL
+里必须方括号包裹 `http://[fdbd:...::]:8001/`，否则解析失败；② FastAPI 把
+`/health/` 301 重定向到 `/health`，`curl -sf` 默认不跟随重定向返回非零 →
+误判服务没起。健康检查 URL 去掉尾斜杠或 curl 加 `-L`。
+
+## 2026-05-15 — vLLM engine subprocess EOFError 真因
+
+**类型**: 经验
+
+`rollout.py EOFError`（multiprocessing pipe）/ starlette traceback 都是
+**后果**，真实 crash 在 vLLM worker 子进程，且日志在 EOFError **之前**或
+独立 process stream。排查往上翻找 `CUDA out of memory` / 模型加载失败，
+不要盯着 EOFError 本身。

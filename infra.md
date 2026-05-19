@@ -93,3 +93,13 @@ dashboard 地址常是内网 IPv6 `[fdbd:...]:8265`，本地浏览器直连不�
 服务，把 `PSM` / `TCE_PSM_GROUP` / `TCE_ZONE` / `TCE_PSM_OWNER` /
 `TCE_INTERNAL_IDC` 等写成环境变量塞给子进程。所以这些变量不是手设的，是
 按 `-p` 的 PSM 名动态查出来的；换 PSM 这些值随之变。
+
+## 2026-05-07 — ByteMesh empty token 诊断
+
+**类型**: 知识
+
+RPC 报 empty token 走 ByteMesh 通常两种：① endpoint 为空（callee 没部署实例
+/ 跨机房没指定 to_dc/to_cluster），mesh 不带 token；② callee 没开 RPC 入流量
+ByteMesh 开关（with_protocol_header 为空）。多是 callee 侧配置问题。诊断：
+`madmin bt/xds?pp 2>&1 | grep <psm>` 看 instances 是否空；
+`madmin -cp "THRIFT_EGRESS|..."` 看 callee 是否开 ttheader。

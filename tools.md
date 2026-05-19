@@ -72,3 +72,23 @@ Edit 的 old_string 必须与文件逐字匹配（含缩进），且唯一；改
 （如 `id_ed25519`）不覆盖；③ 在 `~/.ssh/config` 加 `Host github.com` +
 `IdentityFile <新key>` + `IdentitiesOnly yes` 只对 github 用新 key，不影响
 其他 host。切忌直接 `ssh-keygen -f id_rsa` 覆盖。
+
+## 2026-04-29 — 飞书 docx 表格块不能用 children API
+
+**类型**: 知识
+
+Feishu 表格是带 row/column grid 的特殊 block，`/blocks/{id}/children` 增量
+创建 cell 会 `1770001 invalid param` / 9499（table_cell block_type=32 带
+inline children）。两条出路：① 用 `/blocks/{id}/descendants` 端点一次 POST
+整张带层级的块树（需传 block_id/parent_id）；② 最稳——markdown 阶段就把
+`| a | b |` 表格预处理成 heading+bullet，飞书 100% 兼容。优先方案②。
+
+## 2026-04-29 — 飞书 drive 权限 API v1→v2 端点
+
+**类型**: 知识
+
+设公共权限 `PUT /drive/v1/permissions/{t}/public` → `PATCH /drive/v2/.../public`
+（v2 改 PATCH 部分更新语义）；转 owner `POST /drive/v1/.../transfer_owner`
+→ `POST /drive/v1/.../members/transfer_owner`（少了 `/members`）。
+copy_entity 值 `"anyone"` → `"anyone_can_edit"`。400 时看 `field_violations`
+逐个对枚举值。

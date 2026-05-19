@@ -106,3 +106,26 @@ verl SFT 默认读 parquet（一行一样本），推荐 messages 格式（覆�
 call）：`{"messages":[...]}`，assistant 的 tool_calls 单独字段。loss mask 由
 chat_template 的 generation 标记 + dataset 配置决定，只在 assistant 段算 loss。
 比 RL 数据准备简单：一份 parquet + 一段 chat_template 渲染。
+
+---
+
+## 2026-05-11 — 多轮 prefix 只训 last round 的危害
+
+**类型**: 知识
+
+tool_call+response 数据合训、只对最后一轮算 loss，能跑通但有害：
+① Exposure bias 放大——训练时 prefix 全是 gold tool_call/tool_response，推理时
+prefix 是模型自己生成的（可能格式/参数错），模型没见过"脏 prefix 还能正确收尾"，
+表现为中间 tool_call 出错后末轮答崩、多调几次工具就崩；② 中间轮决策不学——
+tool_call 样本只学"发起调用"不学"看到返回该干嘛"，response 样本只学"看返回给
+答"不学"何时停止再调"。缓解需让中间轮也进 loss 或加 self-generated prefix 数据。
+
+## 2026-05-11 — Qwen3 chat_template 结构
+
+**类型**: 知识
+
+Qwen2.5/Qwen3 标准模板三段：① system 块（`{%- if tools %}` 时把用户 system
+内容 + `# Tools` + `<tools>` 循环拼进去）；② messages 循环渲染
+user/assistant(+tool_calls)/tool；③ `add_generation_prompt` 时追加
+`<|im_start|>assistant\n`。tools **只在模板有 tools 分支时**才进 system——
+训练/推理 tools 不一致会改变整个 system 块，是格式错位根源。

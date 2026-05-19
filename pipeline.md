@@ -83,3 +83,13 @@ SFT system prompt 的 `<tools>...</tools>` 来自
 当初生成源数据时的工具环境，与推理时 `model.py` 注入的工具集可能不一致。
 
 ---
+
+## 2026-05-16 — evaluate_rubrics_only 漏 sub_videos 压低 reward
+
+**类型**: 问题
+
+RL reward 走 `evaluate_rubrics_only`（经 `score_response`），它**不调
+`populate_metadata`**，`sub_videos` 永不设 → `record.get("sub_videos",0)` 恒
+"0" → 触发 Card-Low-value-Visual/Auditory 默认 Score 1 → 最差原则把 raw_score
+压到 ~1，是 `reward_response ≤ 0.35` 主因。解决：在 evaluate_rubrics_only 里
+补一个纯 regex、无网络的 sub_videos 提取。
